@@ -69,7 +69,7 @@ If you run with <info>--dry-run</info>, this command displays to be applied sql 
         $app = $this->getApplication();
         $ini = $input->getOption('ini');
         if (!$ini) {
-            $ini = $app->getIni();
+            $ini = $app->getDotEnv();
         }
         if (!file_exists($ini)) {
             throw new RuntimeException($ini . ' does not exist.');
@@ -80,7 +80,7 @@ If you run with <info>--dry-run</info>, this command displays to be applied sql 
             $output->writeln('<error>now up is dry-run mode (--dry-run), so display only.</error>');
         }
 
-        $app->setConfigFromIni($ini);
+        $app->setConfigFromDotEnv($ini);
         if ($fileName = $input->getArgument('file')) {
             $file = $app->getSqlFileByName($fileName);
             $output->writeln('<info>applying specific sql file ... :</info>' . $file->getFileName());

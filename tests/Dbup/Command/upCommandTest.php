@@ -5,7 +5,7 @@ use Dbup\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Dbup\Command\UpCommand;
 
-class UpCommandTest extends \PHPUnit_Framework_TestCase
+class UpCommandTest extends \PHPUnit\Framework\TestCase
 {
     public function testDryRunMode()
     {
@@ -18,7 +18,8 @@ class UpCommandTest extends \PHPUnit_Framework_TestCase
                 '--ini' => __DIR__ . '/../.dbup/properties.ini.test',
                 '--dry-run' => true,
             ]);
-        assertThat($commandTester->getDisplay(), is(containsString('now up is dry-run mode (--dry-run), so display only')));
+        // assertThat($commandTester->getDisplay(), is(containsString('now up is dry-run mode (--dry-run), so display only')));
+        $this->assertContains('now up is dry-run mode (--dry-run), so display only', $commandTester->getDisplay() );
         \Phake::verify($application, \Phake::times(0))->up(\Phake::anyParameters());
 
     }

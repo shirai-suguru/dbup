@@ -16,6 +16,7 @@ use Symfony\Component\Console\Application as BaseApplication;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 use Dbup\Exception\RuntimeException;
+use Dotenv\Dotenv;
 
 /**
  * @author Masao Maeda <brt.river@gmail.com>
@@ -23,7 +24,7 @@ use Dbup\Exception\RuntimeException;
 class Application extends BaseApplication
 {
     const NAME = 'dbup';
-    const VERSION = '0.5';
+    const VERSION = '0.5.1';
     /** sql file pattern */
     const PATTERN = '/^V(\d+?)__.*\.sql$/i';
     /** @var null PDO  */
@@ -52,9 +53,9 @@ EOL;
         $this->appliedFilesDir =  $this->baseDir . '/.dbup/applied';
     }
 
-    public function getIni()
+    public function getDotEnv()
     {
-        return $this->baseDir . '/.dbup/properties.ini';
+        return $this->baseDir . '/.env';
     }
 
     public function getFinder()
@@ -67,33 +68,56 @@ EOL;
         $this->pdo = new PdoDatabase($dsn, $user, $password, $driverOptions);
     }
 
-    public function parseIniFile($path)
+    public function parseDotEnv($path)
     {
-        $ini = file_get_contents($path);
-        $replaced = preg_replace_callback('/%%(DBUP_[^%]+)%%/', function ($matches) {
-            list($whole, $key) = $matches;
-            return isset($_SERVER[$key]) ? $_SERVER[$key] : $whole;
-        }, $ini);
+        (new Dotenv(dirname($path), basename($path)))->overload();
 
-        return parse_ini_string($replaced, true);
+        return null;
     }
 
-    public function setConfigFromIni($path)
+    public function setConfigFromDotEnv($path)
     {
-        $parse = $this->parseIniFile($path);
-        if (!isset($parse['pdo'])) {
-            throw new RuntimeException('cannot find [pdo] section in your properties.ini');
+        $parse = $this->parseDotEnv($path);
+        if (empty(getenv('DB_URI'))) {
+            throw new RuntimeException('cannot find DB_URI  in your .env file');
         }
-        $pdo = $parse['pdo'];
-        $dsn = (isset($pdo['dsn']))? $pdo['dsn']: '';
-        $user = (isset($pdo['user']))? $pdo['user']: '';
-        $password = (isset($pdo['password']))? $pdo['password']: '';
-        $driverOptions = (isset($parse['pdo_options']))? $parse['pdo_options']: [];
 
-        if (isset($parse['path'])) {
-            $path = $parse['path'];
-            $this->sqlFilesDir = (isset($path['sql']))? $path['sql']: $this->sqlFilesDir;
-            $this->appliedFilesDir = (isset($path['applied']))? $path['applied']: $this->appliedFilesDir;
+        $uri = (explode(',', getenv('DB_URI')))[0];
+
+        $parseAry = \parse_url($uri);
+
+        if (!isset($parseAry['host'], $parseAry['port'], $parseAry['path'], $parseAry['query'])) {
+            throw new RuntimeException('Uri format error uri=' . $uri);
+        }
+
+        $parseAry['database'] = \str_replace('/', '', $parseAry['path']);
+        $query                = $parseAry['query'];
+
+        \parse_str($query, $options);
+
+        if (!isset($options['user'], $options['password'])) {
+            throw new RuntimeException('Lack of username and password，uri=' . $uri);
+        }
+
+        if (!isset($options['charset'])) {
+            $options['charset'] = '';
+        }
+
+        $configs = \array_merge($parseAry, $options);
+        unset($configs['path'], $configs['query']);
+
+        $dsn = 'mysql:dbname=' . $configs['database']
+                               .';host=' . $configs['host'] . ( !empty($configs['port']) ? (':' . $configs['port']) : '' )
+                               . ( !empty($configs['charset']) ? ';charset=' . $configs['charset'] : '' );
+        $user = $configs['user'];
+        $password =$configs['password'];
+        $driverOptions = (isset($configs['pdo_options']))? $configs['pdo_options']: [];
+
+        if (!empty(getenv('DBUP_SQL_DIR'))) {
+            $this->sqlFilesDir = getenv('DBUP_SQL_DIR');
+        }
+        if (!empty(getenv('DBUP_APPLIED_DIR'))) {
+            $this->appliedFilesDir = getenv('DBUP_APPLIED_DIR');
         }
 
         $this->createPdo($dsn, $user, $password, $driverOptions);

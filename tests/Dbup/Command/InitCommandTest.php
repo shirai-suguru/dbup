@@ -5,7 +5,7 @@ use Dbup\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Dbup\Command\InitCommand;
 
-class InitCommandTest extends \PHPUnit_Framework_TestCase
+class InitCommandTest extends \PHPUnit\Framework\TestCase
 {
     public function testInitializeDirsAndFiles()
     {

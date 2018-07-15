@@ -5,7 +5,7 @@ use Dbup\Application;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
-Class ApplicationTest extends \PHPUnit_Framework_TestCase
+class ApplicationTest extends \PHPUnit\Framework\TestCase
 {
     public $app;
     public $pdo;
@@ -22,62 +22,57 @@ Class ApplicationTest extends \PHPUnit_Framework_TestCase
 
     public function testSetPropertiesWhenInstanceIsMade()
     {
-        assertThat($this->app->sqlFilesDir, is('./sql'));
-        assertThat($this->app->appliedFilesDir, is('./.dbup/applied'));
+        $this->assertEquals($this->app->sqlFilesDir, './sql');
+        $this->assertEquals($this->app->appliedFilesDir, './.dbup/applied');
     }
 
-    public function testGetIniFilePath()
+    public function testGetDotEnvFilePath()
     {
-        assertThat($this->app->getIni(), is('./.dbup/properties.ini'));
+        $this->assertEquals($this->app->getDotEnv(), './.env');
     }
 
-    public function testParseIniFileReplaceVariables()
+    public function testParseDotEnvReplaceVariables()
     {
-        $_SERVER['DBUP_TEST_DBMS'] = 'replaced_dbms';
-        $_SERVER['DBUP_TEST_USER'] = 'replaced_user';
-        $_SERVER['DBUP_TEST_HOST'] = 'replaced_host';
-        $_SERVER['OTHER_PREFIX_DBUP_TEST_PASSWORD'] = 'replaced_password';
+        $envReplace = '192.168.0.1:3306/test?user=admin&password=pass&charset=utf8mb4,192.168.0.1:3316/test?user=root&password=root&charset=utf8mb4';
 
-        $ini = __DIR__ . '/.dbup/properties.ini.replace';
-        $parsed = $this->app->parseIniFile($ini)['pdo'];
+        $ini = __DIR__ . '/.env.replace';
+        $parsed = $this->app->parseDotEnv($ini);
 
-        assertThat($parsed['dsn'], is('replaced_dbms:dbname=replaced_user_replaced_host_%%DBUP_TEST_NOT_REPLACED%%;host=replaced_host'));
-        assertThat($parsed['user'], is('%DBUP_TEST_USER%'));
-        assertThat($parsed['password'], is('%%OTHER_PREFIX_DBUP_TEST_PASSWORD%%'));
+        $this->assertEquals(getenv('DB_URI'), $envReplace);
     }
 
-    public function testSetConfigFromIni()
+    public function testSetConfigFromDotEnv()
     {
-        $ini = __DIR__ . '/.dbup/properties.ini';
-        $this->app->setConfigFromIni($ini);
+        $ini = __DIR__ . '/.env';
+        $this->app->setConfigFromDotEnv($ini);
 
-        assertThat($this->app->sqlFilesDir, is('/etc/dbup/sql'));
-        assertThat($this->app->appliedFilesDir, is('/etc/dbup/applied'));
-        \Phake::verify($this->app)->createPdo('mysql:dbname=testdatabase;host=localhost', 'testuser', 'testpassword', ['\PDO::MYSQL_ATTR_LOCAL_INFILE' => 1]);
+        $this->assertEquals($this->app->sqlFilesDir, '/etc/dbup/sql');
+        $this->assertEquals($this->app->appliedFilesDir, '/etc/dbup/applied');
+        \Phake::verify($this->app)->createPdo('mysql:dbname=test;host=192.168.0.1:3316;charset=utf8mb4', 'root', 'root', []);
     }
 
     /**
      * @expectedException Dbup\Exception\RuntimeException
      */
-    public function testCatchExceptionSetConfigFromEmptyIni()
+    public function testCatchExceptionSetConfigFromEmptyDotEnv()
     {
-        $ini = __DIR__ . '/.dbup/properties.ini.empty';
-        $this->app->setConfigFromIni($ini);
+        $ini = __DIR__ . '/.env.empty';
+        $this->app->setConfigFromDotEnv($ini);
     }
 
-    public function testSetConfigFromMinIni()
+    public function testSetConfigFromMinDotEnv()
     {
-        $ini = __DIR__ . '/.dbup/properties.ini.min';
-        $this->app->setConfigFromIni($ini);
+        $ini = __DIR__ . '/.env.min';
+        $this->app->setConfigFromDotEnv($ini);
 
-        \Phake::verify($this->app)->createPdo('mysql:dbname=testdatabase;host=localhost', '', '', []);
+        \Phake::verify($this->app)->createPdo('mysql:dbname=testdatabase;host=localhost:3306', '', '', []);
     }
 
     public function testGetSqlFileByName()
     {
         $this->app->sqlFilesDir = __DIR__ . '/sql';
         $file = $this->app->getSqlFileByName('V1__sample_select.sql');
-        assertThat($file->getFileName(), is('V1__sample_select.sql'));
+        $this->assertEquals($file->getFileName(), 'V1__sample_select.sql');
     }
 
     /**
@@ -96,13 +91,13 @@ Class ApplicationTest extends \PHPUnit_Framework_TestCase
 
         $statuses = $this->app->getStatuses();
 
-        assertThat(count($statuses), is(3));
-        assertThat($statuses[0]->appliedAt, is(not('')));
-        assertThat($statuses[0]->file->getFileName(), is('V1__sample_select.sql'));
-        assertThat($statuses[1]->appliedAt, is(''));
-        assertThat($statuses[1]->file->getFileName(), is('V3__sample3_select.sql'));
-        assertThat($statuses[2]->appliedAt, is(''));
-        assertThat($statuses[2]->file->getFileName(), is('V12__sample12_select.sql'));
+        $this->assertEquals(count($statuses), 3);
+        $this->assertNotEquals($statuses[0]->appliedAt, '');
+        $this->assertEquals($statuses[0]->file->getFileName(), 'V1__sample_select.sql');
+        $this->assertEquals($statuses[1]->appliedAt, '');
+        $this->assertEquals($statuses[1]->file->getFileName(), 'V3__sample3_select.sql');
+        $this->assertEquals($statuses[2]->appliedAt, '');
+        $this->assertEquals($statuses[2]->file->getFileName(), 'V12__sample12_select.sql');
     }
 
     public function testGetUpCandidates()
@@ -112,9 +107,9 @@ Class ApplicationTest extends \PHPUnit_Framework_TestCase
 
         $candidates = $this->app->getUpCandidates();
 
-        assertThat(count($candidates), is(2));
-        assertThat($candidates[0]->file->getFileName(), is('V3__sample3_select.sql'));
-        assertThat($candidates[1]->file->getFileName(), is('V12__sample12_select.sql'));
+        $this->assertEquals(count($candidates), 2);
+        $this->assertEquals($candidates[0]->file->getFileName(), 'V3__sample3_select.sql');
+        $this->assertEquals($candidates[1]->file->getFileName(), 'V12__sample12_select.sql');
     }
 
     /**
@@ -135,7 +130,7 @@ Class ApplicationTest extends \PHPUnit_Framework_TestCase
         $file = new \SplFileInfo(__DIR__ . '/samples/single.sql');
         $this->app->copyToAppliedDir($file);
 
-        assertThat(file_exists(__DIR__ . '/.dbup/applied/single.sql'), is(true));
+        $this->assertEquals(file_exists(__DIR__ . '/.dbup/applied/single.sql'), true);
 
         @unlink(__DIR__ . '/.dbup/applied/single.sql');
     }

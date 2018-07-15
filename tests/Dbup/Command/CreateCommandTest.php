@@ -6,7 +6,7 @@ use Dbup\Command\CreateCommand;
 use Symfony\Component\Console\Tester\CommandTester;
 use Dbup\Command\InitCommand;
 
-class CreateCommandTest extends \PHPUnit_Framework_TestCase
+class CreateCommandTest extends \PHPUnit\Framework\TestCase
 {
     public function testCreate()
     {
@@ -24,12 +24,12 @@ class CreateCommandTest extends \PHPUnit_Framework_TestCase
         );
 
         $display = $commandTester->getDisplay();
-        assertThat($display, is(containsString('created')));
+        $this->assertContains('created', $display);
 
         preg_match('/\'(.+)\'/', $display, $matches);
-        assertThat(1, count($matches));
+        $this->assertEquals(2, count($matches));
 
-        $migration = str_replace("'", "", $matches[0]);
+        $migration = str_replace("'", "", $matches[1]);
         unlink(__DIR__ . '/../../../' . $migration);
     }
 }

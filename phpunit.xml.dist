@@ -8,12 +8,11 @@
          convertWarningsToExceptions="true"
          processIsolation="false"
          stopOnFailure="false"
-         syntaxCheck="false"
-         bootstrap="tests/bootstrap.php"
+         bootstrap="./tests/bootstrap.php"
         >
     <testsuites>
         <testsuite name="Dbup Test Suite">
-            <directory>./tests/Dbup/</directory>
+            <directory suffix="Test.php">./tests/Dbup/</directory>
         </testsuite>
     </testsuites>
     <filter>

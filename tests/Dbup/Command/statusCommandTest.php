@@ -5,7 +5,7 @@ use Dbup\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Dbup\Command\StatusCommand;
 
-class StatusCommandTest extends \PHPUnit_Framework_TestCase
+class StatusCommandTest extends \PHPUnit\Framework\TestCase
 {
     public function testSpecificPropertiesIni()
     {
@@ -18,7 +18,7 @@ class StatusCommandTest extends \PHPUnit_Framework_TestCase
                 '--ini' => __DIR__ . '/../.dbup/properties.ini.test',
             ]);
 
-        assertThat($commandTester->getDisplay(), is(containsString('| appending...        | V12__sample12_select.sql |')));
+        $this->assertContains('| appending...        | V12__sample12_select.sql |', $commandTester->getDisplay());
     }
 
     /**

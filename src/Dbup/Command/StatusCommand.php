@@ -48,13 +48,13 @@ dbup checks whether sql files were applied or not by comparing the file names in
         $app = $this->getApplication();
         $ini = $input->getOption('ini');
         if (!$ini) {
-            $ini = $app->getIni();
+            $ini = $app->getDotEnv();
         }
         if (!file_exists($ini)) {
             throw new RuntimeException($ini . ' does not exist.');
         }
 
-        $app->setConfigFromIni($ini);
+        $app->setConfigFromDotEnv($ini);
 
         $statuses = $app->getStatuses();
 
